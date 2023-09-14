@@ -38,11 +38,9 @@ unsigned long lastRequest = 0;
 bool SerialConfigured = true;
 bool PwmConfigured = true;
 
-
-AirGradient::AirGradient(bool displayMsg,int baudRate)
-{
+AirGradient::AirGradient(bool displayMsg, int baudRate) {
   _debugMsg = displayMsg;
-  Wire.begin();
+  // Wire.begin();
   Serial.begin(baudRate);
    if (_debugMsg) {
     Serial.println("AirGradiant Library instantiated successfully.");
@@ -57,7 +55,7 @@ void AirGradient::PMS_Init(){
   if (_debugMsg) {
     Serial.println("Initializing PMS...");
     }
-  PMS_Init(D5,D6);
+  // PMS_Init(D5,D6);
 }
 void AirGradient::PMS_Init(int rx_pin,int tx_pin){
   PMS_Init(rx_pin,tx_pin,9600);
@@ -412,10 +410,13 @@ void AirGradient::loop()
 
 //START TMP_RH FUNCTIONS//
 
-TMP_RH_ErrorCode AirGradient::TMP_RH_Init(uint8_t address) {
+TMP_RH_ErrorCode AirGradient::TMP_RH_Init(uint8_t address,
+                                          int PinSDA, int PinSCL) {
   if (_debugMsg) {
     Serial.println("Initializing TMP_RH...");
-    }
+  }
+  
+  Wire.begin(PinSDA, PinSCL);
   TMP_RH_ErrorCode error = SHT3XD_NO_ERROR;
   _address = address;
   periodicStart(SHT3XD_REPEATABILITY_HIGH, SHT3XD_FREQUENCY_10HZ);
@@ -681,8 +682,8 @@ uint8_t AirGradient::calculateCrc(uint8_t data[])
 
 TMP_RH AirGradient::returnError(TMP_RH_ErrorCode error) {
   TMP_RH result;
-  result.t = NULL;
-  result.rh = NULL;
+  result.t = 0.0;
+  result.rh = 0;
 
   result.t_char[0] = 'N';
   result.t_char[1] = 'U';
@@ -702,18 +703,21 @@ TMP_RH AirGradient::returnError(TMP_RH_ErrorCode error) {
 
 //START CO2 FUNCTIONS //
 void AirGradient::CO2_Init(){
-  CO2_Init(D4,D3);
+  // CO2_Init(D4,D3);
 }
 void AirGradient::CO2_Init(int rx_pin,int tx_pin){
   CO2_Init(rx_pin,tx_pin,9600);
-  
+
 }
+
 void AirGradient::CO2_Init(int rx_pin,int tx_pin,int baudRate){
   if (_debugMsg) {
     Serial.println("Initializing CO2...");
     }
+
   _SoftSerial_CO2 = new SoftwareSerial(rx_pin,tx_pin);
   _SoftSerial_CO2->begin(baudRate);
+  // Serial1.begin(baudRate, SERIAL_8N1, rx_pin, tx_pin);
 
   if(getCO2_Raw() == -1){
     if (_debugMsg) {
@@ -778,6 +782,7 @@ int AirGradient::getCO2_Raw() {
       timeoutCounter++;
       if (timeoutCounter > 10) {
         // timeout when reading response
+        Serial.println("timeout");
         return -3;
       }
       delay(50);
@@ -795,36 +800,87 @@ int AirGradient::getCO2_Raw() {
  return CO2Response[datapos + 3]*256 + CO2Response[datapos + 4];
 }
 
+#if 0
+int AirGradient::getCO2_Raw() {
+    while (Serial1.available())  // flush whatever we might have
+        Serial1.read();
+
+    const byte CO2Command[] = {0xFE, 0X44, 0X00, 0X08, 0X02, 0X9F, 0X25};
+    byte CO2Response[] = {0, 0, 0, 0, 0, 0, 0};
+
+    // tt
+    int datapos = -1;
+    //
+
+    const int commandSize = 7;
+
+    int numberOfBytesWritten = Serial1.write(CO2Command, commandSize);
+
+    if (numberOfBytesWritten != commandSize) {
+        // failed to write request
+        return -2;
+    }
+
+    // attempt to read response
+    int timeoutCounter = 0;
+    while (Serial1.available() < commandSize) {
+        timeoutCounter++;
+        if (timeoutCounter > 10) {
+            // timeout when reading response
+            return -3;
+        }
+        delay(50);
+    }
+
+    // we have 7 bytes ready to be read
+    for (int i = 0; i < commandSize; i++) {
+        CO2Response[i] = Serial1.read();
+
+        // tt
+        if ((CO2Response[i] == 0xFE) && (datapos == -1)) {
+            datapos = i;
+        }
+        Serial.print(CO2Response[i], HEX);
+        Serial.print(":");
+        //
+    }
+    // return CO2Response[3]*256 + CO2Response[4];
+    // tt
+    return CO2Response[datapos + 3] * 256 + CO2Response[datapos + 4];
+    //
+}
+#endif
+
 //END CO2 FUNCTIONS //
 
 //START MHZ19 FUNCTIONS //
-void AirGradient::MHZ19_Init(uint8_t type) {
-  MHZ19_Init(9,10,type);
-}
-void AirGradient::MHZ19_Init(int rx_pin,int tx_pin, uint8_t type) {
-  MHZ19_Init(rx_pin,tx_pin,9600,type);
-}
-void AirGradient::MHZ19_Init(int rx_pin,int tx_pin, int baudRate, uint8_t type) {
-  if (_debugMsg) {
-      Serial.println("Initializing MHZ19...");
-      }
-    _SoftSerial_MHZ19 = new SoftwareSerial(rx_pin,tx_pin);
-    _SoftSerial_MHZ19->begin(baudRate);
+// void AirGradient::MHZ19_Init(uint8_t type) {
+//   MHZ19_Init(9,10,type);
+// }
+// void AirGradient::MHZ19_Init(int rx_pin,int tx_pin, uint8_t type) {
+//   MHZ19_Init(rx_pin,tx_pin,9600,type);
+// }
+// void AirGradient::MHZ19_Init(int rx_pin,int tx_pin, int baudRate, uint8_t type) {
+//   if (_debugMsg) {
+//       Serial.println("Initializing MHZ19...");
+//       }
+//     _SoftSerial_MHZ19 = new SoftwareSerial(rx_pin,tx_pin);
+//     _SoftSerial_MHZ19->begin(baudRate);
 
-    if(readMHZ19() == -1){
-      if (_debugMsg) {
-      Serial.println("MHZ19 Sensor Failed to Initialize ");
-      }
-    }
-    else{
-      Serial.println("MHZ19 Successfully Initialized. Heating up for 10s");
-      delay(10000);
-    }
+//     if(readMHZ19() == -1){
+//       if (_debugMsg) {
+//       Serial.println("MHZ19 Sensor Failed to Initialize ");
+//       }
+//     }
+//     else{
+//       Serial.println("MHZ19 Successfully Initialized. Heating up for 10s");
+//       delay(10000);
+//     }
 
-  _type_MHZ19 = type;
+//   _type_MHZ19 = type;
 
-  PwmConfigured = false;
-}
+//   PwmConfigured = false;
+// }
 
 /**
  * Enables or disables the debug mode (more logging).
