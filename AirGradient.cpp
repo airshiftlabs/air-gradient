@@ -736,7 +736,7 @@ int AirGradient::getCO2(int numberOfSamplesToTake) {
   for (int sample = 0; sample < numberOfSamplesToTake; sample++) {
     int co2AsPpm = getCO2_Raw();
     if (co2AsPpm > 300 && co2AsPpm < 10000) {
-      Serial.println("CO2 read success " + String(co2AsPpm));
+      // Serial.println("CO2 read success " + String(co2AsPpm));
       successfulSamplesCounter++;
       co2AsPpmSum += co2AsPpm;
     } else {
@@ -751,8 +751,8 @@ int AirGradient::getCO2(int numberOfSamplesToTake) {
     // total failure
     return -5;
   }
-  Serial.println("# of CO2 reads that worked: " + String(successfulSamplesCounter));
-  Serial.println("CO2 reads sum " + String(co2AsPpmSum));
+  // Serial.println("# of CO2 reads that worked: " + String(successfulSamplesCounter));
+  // Serial.println("CO2 reads sum " + String(co2AsPpmSum));
   return co2AsPpmSum / successfulSamplesCounter;
 }
 
